@@ -16,7 +16,7 @@ function BusMap({ lat, long, stop }: Props) {
   const stopMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
-    const token = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN;
+    const token = import.meta.env["VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN"] as string | undefined;
     if (!token || !containerRef.current || mapRef.current) return;
 
     mapboxgl.accessToken = token;
