@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { getTicket, type TicketResult } from "@/lib/ticket.functions";
 import {
   AFTERNOON_STOPS,
@@ -10,6 +10,8 @@ import {
   haversineKm,
   type Stop,
 } from "@/lib/route-c-stops";
+
+const BusMap = lazy(() => import("@/components/BusMap"));
 
 export const Route = createFileRoute("/")({
   head: () => ({
