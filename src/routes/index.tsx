@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { getTicket, type TicketResult } from "@/lib/ticket.functions";
 import {
   AFTERNOON_STOPS,
@@ -10,6 +10,8 @@ import {
   haversineKm,
   type Stop,
 } from "@/lib/route-c-stops";
+
+const BusMap = lazy(() => import("@/components/BusMap"));
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -162,15 +164,20 @@ function Index() {
                   </dd>
                 </div>
               </dl>
-              <a
-                href={`https://www.google.com/maps?q=${live.lat},${live.long}`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-block text-sm font-medium text-accent underline underline-offset-4"
-              >
-                Open bus position on a map
-              </a>
             </div>
+
+            <Suspense
+              fallback={
+                <div className="flex h-72 items-center justify-center rounded-2xl border border-border bg-card text-sm text-muted-foreground sm:h-96">
+                  Loading map…
+                </div>
+              }
+            >
+              <BusMap lat={live.lat} long={live.long} stop={stop} />
+            </Suspense>
+            <p className="text-xs text-muted-foreground">
+              Green dot is the bus · amber diamond is your selected stop.
+            </p>
 
             <div
               className="rounded-2xl border border-border bg-card p-5"
