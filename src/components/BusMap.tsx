@@ -22,7 +22,7 @@ function BusMap({ lat, long, stop }: Props) {
     mapboxgl.accessToken = token;
     const map = new mapboxgl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/dark-v11",
+      style: "mapbox://styles/mapbox/light-v11",
       center: [long, lat],
       zoom: 11,
       attributionControl: false,

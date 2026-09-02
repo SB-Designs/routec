@@ -13,6 +13,9 @@ import {
 
 const BusMap = lazy(() => import("@/components/BusMap"));
 
+const STORAGE_TICKET = "routec:ticketId";
+const STORAGE_STOP = "routec:stopId";
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -59,6 +62,24 @@ function Index() {
     [fetchTicket],
   );
 
+  // Restore last-used ticket and stop from browser storage.
+  useEffect(() => {
+    try {
+      const savedStop = window.localStorage.getItem(STORAGE_STOP);
+      if (savedStop && ALL_STOPS.some((s) => s.id === savedStop)) {
+        setStopId(savedStop);
+      }
+      const savedTicket = window.localStorage.getItem(STORAGE_TICKET);
+      if (savedTicket) {
+        setTicketInput(savedTicket);
+        setTicketId(savedTicket);
+        void load(savedTicket);
+      }
+    } catch {
+      // storage unavailable — ignore
+    }
+  }, [load]);
+
   useEffect(() => {
     if (!ticketId) return;
     timer.current = setInterval(() => void load(ticketId), 10_000);
@@ -78,6 +99,23 @@ function Index() {
     setUpdatedAt(new Date());
     setLoading(false);
     setTicketId(res.ok ? id : null);
+    // Replace the remembered ticket with whatever was just entered.
+    try {
+      if (res.ok) window.localStorage.setItem(STORAGE_TICKET, id);
+      else window.localStorage.removeItem(STORAGE_TICKET);
+    } catch {
+      // storage unavailable — ignore
+    }
+  }
+
+  function onStopChange(id: string) {
+    setStopId(id);
+    try {
+      if (id) window.localStorage.setItem(STORAGE_STOP, id);
+      else window.localStorage.removeItem(STORAGE_STOP);
+    } catch {
+      // storage unavailable — ignore
+    }
   }
 
   const live = result?.ok ? result : null;
@@ -88,14 +126,14 @@ function Index() {
   return (
     <main className="min-h-screen" style={{ background: "var(--gradient-hero)" }}>
       <div className="mx-auto w-full max-w-2xl px-5 py-12">
-        <header className="mb-8">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium uppercase tracking-widest text-accent">
-            Route C
-          </span>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground">
+        <header className="mb-8 text-center">
+          <p className="font-mono text-xs tracking-[0.35em] text-foreground/70">
+            route ◦ c
+          </p>
+          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-foreground">
             Live bus tracker
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-3 text-sm text-foreground/70">
             Enter your ticket ID to follow the Route C coach. Position refreshes every 10 seconds.
           </p>
         </header>
@@ -110,7 +148,7 @@ function Index() {
             onChange={(e) => setTicketInput(e.target.value)}
             placeholder="Your ticket ID"
             aria-label="Ticket ID"
-            className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
+            className="w-full rounded-xl border border-input bg-background px-4 py-3 font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
           />
           <button
             type="submit"
@@ -136,7 +174,9 @@ function Index() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-widest text-muted-foreground">Service</p>
-                  <p className="text-lg font-semibold text-foreground">{live.serviceName}</p>
+                  <p className="font-display text-lg font-semibold text-card-foreground">
+                    {live.serviceName}
+                  </p>
                 </div>
                 <span className="flex items-center gap-2 text-xs text-accent">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
@@ -146,15 +186,15 @@ function Index() {
               <dl className="mt-4 grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <dt className="text-muted-foreground">Latitude</dt>
-                  <dd className="font-mono text-foreground">{live.lat.toFixed(6)}</dd>
+                  <dd className="font-mono text-card-foreground">{live.lat.toFixed(6)}</dd>
                 </div>
                 <div>
                   <dt className="text-muted-foreground">Longitude</dt>
-                  <dd className="font-mono text-foreground">{live.long.toFixed(6)}</dd>
+                  <dd className="font-mono text-card-foreground">{live.long.toFixed(6)}</dd>
                 </div>
                 <div className="col-span-2">
                   <dt className="text-muted-foreground">Last position update</dt>
-                  <dd className="text-foreground">
+                  <dd className="text-card-foreground">
                     {live.lastUpdated ? new Date(live.lastUpdated).toLocaleString("en-GB") : "—"}
                     {updatedAt && (
                       <span className="ml-2 text-xs text-muted-foreground">
@@ -175,7 +215,7 @@ function Index() {
             >
               <BusMap lat={live.lat} long={live.long} stop={stop} />
             </Suspense>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-foreground/60">
               Green dot is the bus · amber diamond is your selected stop.
             </p>
 
@@ -192,7 +232,7 @@ function Index() {
               <select
                 id="stop"
                 value={stopId}
-                onChange={(e) => setStopId(e.target.value)}
+                onChange={(e) => onStopChange(e.target.value)}
                 className="mt-2 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">Select a stop…</option>
@@ -235,7 +275,7 @@ function StopSummary({
   const arrival = new Date(Date.now() + minutes * 60_000);
   return (
     <div className="mt-5 border-t border-border pt-5">
-      <p className="text-base font-semibold text-foreground">{stop.name}</p>
+      <p className="font-display text-base font-semibold text-card-foreground">{stop.name}</p>
       <p className="text-sm text-muted-foreground">
         Scheduled {stop.time}
         {stop.w3w && <> · ///{stop.w3w}</>}
@@ -256,7 +296,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-secondary px-3 py-4">
       <p className="text-xs uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
+      <p className="mt-1 font-mono text-lg font-semibold text-card-foreground">{value}</p>
     </div>
   );
 }
